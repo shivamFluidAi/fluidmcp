@@ -8,7 +8,7 @@ Provides REST API for:
 - Listing all configured servers
 """
 from typing import Dict, Any
-from fastapi import APIRouter, Request, HTTPException, Body, Query, Depends
+from fastapi import APIRouter, Request, HTTPException, Body, Query, Depends, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from loguru import logger
 import os
@@ -1401,4 +1401,129 @@ async def trigger_health_check(
         "last_health_check_time": process.last_health_check_time,
         # Issue #3 fix: Use asyncio.to_thread to avoid blocking event loop with file I/O
         "has_cuda_oom": await asyncio.to_thread(process.check_for_cuda_oom)
+    }
+
+
+# ============================================================================
+# Metrics Endpoints (Observability)
+# ============================================================================
+
+@router.get("/metrics")
+async def get_metrics_prometheus(
+    token: str = Depends(get_token)
+):
+    """
+    Get Prometheus-formatted metrics for all LLM models.
+
+    Returns metrics including:
+    - Request counts (total, successful, failed)
+    - Latency statistics (avg, min, max)
+    - Token usage (prompt, completion, total)
+    - Error counts by status code
+    - Uptime
+
+    Example:
+        curl http://localhost:8099/api/metrics
+    """
+    from ..services.llm_metrics import get_metrics_collector
+
+    collector = get_metrics_collector()
+    return Response(
+        content=collector.export_prometheus(),
+        media_type="text/plain; version=0.0.4"
+    )
+
+
+@router.get("/metrics/json")
+async def get_metrics_json(
+    token: str = Depends(get_token)
+):
+    """
+    Get JSON-formatted metrics for all LLM models.
+
+    Returns structured metrics data suitable for dashboards and monitoring tools.
+
+    Example:
+        curl http://localhost:8099/api/metrics/json
+    """
+    from ..services.llm_metrics import get_metrics_collector
+
+    collector = get_metrics_collector()
+    return collector.export_json()
+
+
+@router.get("/metrics/{model_id}")
+async def get_model_metrics(
+    model_id: str,
+    token: str = Depends(get_token)
+):
+    """
+    Get detailed metrics for a specific model.
+
+    Args:
+        model_id: Model identifier
+
+    Returns:
+        Detailed metrics including request counts, latency, tokens, and errors
+
+    Example:
+        curl http://localhost:8099/api/metrics/llama-2-70b
+    """
+    from ..services.llm_metrics import get_metrics_collector
+
+    collector = get_metrics_collector()
+    metrics = collector.get_model_metrics(model_id)
+
+    if not metrics:
+        raise HTTPException(404, f"No metrics found for model '{model_id}'")
+
+    return {
+        "model_id": model_id,
+        "provider_type": metrics.provider_type,
+        "requests": {
+            "total": metrics.total_requests,
+            "successful": metrics.successful_requests,
+            "failed": metrics.failed_requests,
+            "success_rate_percent": round(metrics.success_rate(), 2),
+            "error_rate_percent": round(metrics.error_rate(), 2),
+        },
+        "latency": {
+            "avg_seconds": round(metrics.avg_latency(), 3),
+            "min_seconds": round(metrics.min_latency, 3) if metrics.min_latency != float('inf') else None,
+            "max_seconds": round(metrics.max_latency, 3),
+        },
+        "tokens": {
+            "prompt": metrics.total_prompt_tokens,
+            "completion": metrics.total_completion_tokens,
+            "total": metrics.total_tokens,
+        },
+        "errors_by_status": dict(metrics.errors_by_status),
+    }
+
+
+@router.post("/metrics/reset")
+async def reset_metrics(
+    model_id: str = Query(None, description="Model ID to reset, or omit to reset all"),
+    token: str = Depends(get_token)
+):
+    """
+    Reset metrics for a specific model or all models.
+
+    Args:
+        model_id: Optional model ID. If not provided, resets all metrics.
+
+    Example:
+        # Reset all metrics
+        curl -X POST http://localhost:8099/api/metrics/reset
+
+        # Reset specific model
+        curl -X POST http://localhost:8099/api/metrics/reset?model_id=llama-2-70b
+    """
+    from ..services.llm_metrics import get_metrics_collector
+
+    collector = get_metrics_collector()
+    collector.reset_metrics(model_id)
+
+    return {
+        "message": f"Metrics reset successfully for {'all models' if not model_id else f\"model '{model_id}'\"}"
     }

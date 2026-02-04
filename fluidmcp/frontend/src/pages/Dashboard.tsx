@@ -5,9 +5,11 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ServerListControls } from "../components/ServerListControls";
+import { ActiveServerListControls } from "../components/ActiveServerListControls";
 import { Pagination } from "../components/Pagination";
 import { useServers } from "../hooks/useServers";
 import { useServerFiltering } from "../hooks/useServerFiltering";
+import { useActiveServerFiltering } from "../hooks/useActiveServerFiltering";
 import { showSuccess, showError, showLoading } from "../services/toast";
 
 export default function Dashboard() {
@@ -34,6 +36,19 @@ export default function Dashboard() {
     totalPages,
     totalFilteredCount,
   } = useServerFiltering(servers, { itemsPerPage: 6 });
+
+  // Server filtering for "Currently active servers" section
+  const {
+    searchQuery: activeSearchQuery,
+    sortBy: activeSortBy,
+    currentPage: activeCurrentPage,
+    setSearchQuery: setActiveSearchQuery,
+    setSortBy: setActiveSortBy,
+    setCurrentPage: setActiveCurrentPage,
+    paginatedServers: paginatedActiveServers,
+    totalPages: activeTotalPages,
+    totalFilteredCount: activeTotalFilteredCount,
+  } = useActiveServerFiltering(activeServers, { itemsPerPage: 6 });
 
   const handleStartServer = useCallback(async (serverId: string, serverName: string) => {
     // Silent guard - prevent concurrent operations
@@ -216,41 +231,71 @@ export default function Dashboard() {
                 No servers are currently running
               </p>
             ) : (
-              <div className="active-server-list">
-                {activeServers.map((server) => (
-                  <div key={server.id} className="active-server-row">
-                    <div>
-                      <strong>{server.name}</strong>
-                      <span className={`status ${server.status?.state}`}>
-                        {server.status?.state}
-                      </span>
+              <>
+                <ActiveServerListControls
+                  searchQuery={activeSearchQuery}
+                  onSearchChange={setActiveSearchQuery}
+                  sortBy={activeSortBy}
+                  onSortChange={setActiveSortBy}
+                />
+
+                {activeTotalFilteredCount === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">🔍</div>
+                    <h3 className="empty-state-title">No active servers found</h3>
+                    <p className="empty-state-description">
+                      No active servers match your search
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="active-server-list">
+                      {paginatedActiveServers.map((server) => (
+                        <div key={server.id} className="active-server-row">
+                          <div>
+                            <strong>{server.name}</strong>
+                            <span className={`status ${server.status?.state}`}>
+                              {server.status?.state}
+                            </span>
+                          </div>
+
+                          <div className="active-server-actions">
+                            <button
+                              className="stop-btn"
+                              onClick={() => handleStopServer(server.id, server.name)}
+                              disabled={actionState.serverId === server.id && actionState.type === 'stopping'}
+                            >
+                              {actionState.serverId === server.id && actionState.type === 'stopping' ? 'Stopping...' : 'Stop'}
+                            </button>
+                            <button
+                              className="restart-btn"
+                              onClick={() => handleRestartServer(server.id, server.name)}
+                              disabled={actionState.serverId === server.id && actionState.type === 'restarting'}
+                            >
+                              {actionState.serverId === server.id && actionState.type === 'restarting' ? 'Restarting...' : 'Restart'}
+                            </button>
+                            <button
+                              className="details-btn"
+                              onClick={() => navigate(`/servers/${server.id}`)}
+                            >
+                              Details
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
-                    <div className="active-server-actions">
-                      <button
-                        className="stop-btn"
-                        onClick={() => handleStopServer(server.id, server.name)}
-                        disabled={actionState.serverId === server.id && actionState.type === 'stopping'}
-                      >
-                        {actionState.serverId === server.id && actionState.type === 'stopping' ? 'Stopping...' : 'Stop'}
-                      </button>
-                      <button
-                        className="restart-btn"
-                        onClick={() => handleRestartServer(server.id, server.name)}
-                        disabled={actionState.serverId === server.id && actionState.type === 'restarting'}
-                      >
-                        {actionState.serverId === server.id && actionState.type === 'restarting' ? 'Restarting...' : 'Restart'}
-                      </button>
-                      <button
-                        className="details-btn"
-                        onClick={() => navigate(`/servers/${server.id}`)}
-                      >
-                        Details
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    <Pagination
+                      currentPage={activeCurrentPage}
+                      totalPages={activeTotalPages}
+                      totalItems={activeTotalFilteredCount}
+                      itemsPerPage={6}
+                      onPageChange={setActiveCurrentPage}
+                      itemName="active servers"
+                    />
+                  </>
+                )}
+              </>
             )}
           </div>
         </section>

@@ -125,8 +125,15 @@ const JsonNodeBase: React.FC<JsonNodeProps> = ({ data, name, expandAll = false }
   return <div className="json-line">{String(data)}</div>;
 };
 
-// Memoize JsonNode to prevent unnecessary re-renders of the entire tree
-const JsonNode = React.memo(JsonNodeBase);
+// Memoize JsonNode with custom comparison to prevent unnecessary re-renders
+// Only re-render if data reference, name, or expandAll actually changed
+const JsonNode = React.memo(JsonNodeBase, (prevProps, nextProps) => {
+  return (
+    prevProps.data === nextProps.data &&
+    prevProps.name === nextProps.name &&
+    prevProps.expandAll === nextProps.expandAll
+  );
+});
 
 interface JsonResultViewProps {
   data: unknown;

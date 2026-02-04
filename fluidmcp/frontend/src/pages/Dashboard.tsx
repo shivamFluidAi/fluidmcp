@@ -35,12 +35,10 @@ export default function Dashboard() {
     totalFilteredCount,
   } = useServerFiltering(servers, { itemsPerPage: 6 });
 
-  const handleStartServer = useCallback(async (serverId: string) => {
+  const handleStartServer = useCallback(async (serverId: string, serverName: string) => {
     // Silent guard - prevent concurrent operations
     if (actionState.type !== null) return;
 
-    const server = servers.find(s => s.id === serverId);
-    const serverName = server?.name || serverId;
     const toastId = `server-${serverId}`;
 
     setActionState({ serverId, type: 'starting' });
@@ -54,14 +52,12 @@ export default function Dashboard() {
     } finally {
       setActionState({ serverId: null, type: null });
     }
-  }, [actionState.type, servers, startServer]);
+  }, [actionState.type, startServer]);
 
-  const handleStopServer = useCallback(async (serverId: string) => {
+  const handleStopServer = useCallback(async (serverId: string, serverName: string) => {
     // Silent guard - prevent concurrent operations
     if (actionState.type !== null) return;
 
-    const server = servers.find(s => s.id === serverId);
-    const serverName = server?.name || serverId;
     const toastId = `server-${serverId}`;
 
     setActionState({ serverId, type: 'stopping' });
@@ -75,14 +71,12 @@ export default function Dashboard() {
     } finally {
       setActionState({ serverId: null, type: null });
     }
-  }, [actionState.type, servers, stopServer]);
+  }, [actionState.type, stopServer]);
 
-  const handleRestartServer = useCallback(async (serverId: string) => {
+  const handleRestartServer = useCallback(async (serverId: string, serverName: string) => {
     // Silent guard - prevent concurrent operations
     if (actionState.type !== null) return;
 
-    const server = servers.find(s => s.id === serverId);
-    const serverName = server?.name || serverId;
     const toastId = `server-${serverId}`;
 
     setActionState({ serverId, type: 'restarting' });
@@ -96,7 +90,7 @@ export default function Dashboard() {
     } finally {
       setActionState({ serverId: null, type: null });
     }
-  }, [actionState.type, servers, restartServer]);
+  }, [actionState.type, restartServer]);
 
   if (loading) {
     return (
@@ -182,7 +176,7 @@ export default function Dashboard() {
                       <ServerCard
                         key={server.id}
                         server={server}
-                        onStart={() => handleStartServer(server.id)}
+                        onStart={() => handleStartServer(server.id, server.name)}
                         onViewDetails={() => navigate(`/servers/${server.id}`)}
                         isStarting={actionState.serverId === server.id && actionState.type === 'starting'}
                       />
@@ -235,14 +229,14 @@ export default function Dashboard() {
                     <div className="active-server-actions">
                       <button
                         className="stop-btn"
-                        onClick={() => handleStopServer(server.id)}
+                        onClick={() => handleStopServer(server.id, server.name)}
                         disabled={actionState.serverId === server.id && actionState.type === 'stopping'}
                       >
                         {actionState.serverId === server.id && actionState.type === 'stopping' ? 'Stopping...' : 'Stop'}
                       </button>
                       <button
                         className="restart-btn"
-                        onClick={() => handleRestartServer(server.id)}
+                        onClick={() => handleRestartServer(server.id, server.name)}
                         disabled={actionState.serverId === server.id && actionState.type === 'restarting'}
                       >
                         {actionState.serverId === server.id && actionState.type === 'restarting' ? 'Restarting...' : 'Restart'}

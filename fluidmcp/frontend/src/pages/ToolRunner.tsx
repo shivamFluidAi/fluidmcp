@@ -4,6 +4,7 @@ import { apiClient } from '../services/api';
 import { useToolRunner } from '../hooks/useToolRunner';
 import { JsonSchemaForm } from '../components/form/JsonSchemaForm';
 import { ToolResult } from '../components/result/ToolResult';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import type { Server, Tool } from '../types/server';
 import './ToolRunner.css';
 
@@ -151,7 +152,18 @@ export const ToolRunner: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="tool-runner-content">
+      <ErrorBoundary fallback={
+        <div className="tool-runner-content">
+          <div className="result-error">
+            <h3>Error Loading Tool</h3>
+            <p>Failed to render tool execution interface. Please try again.</p>
+            <button onClick={() => navigate('/dashboard')} className="btn-secondary">
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      }>
+        <div className="tool-runner-content">
         {/* Left Column: Form and History */}
         <div className="tool-runner-left">
           {/* Parameters Form */}
@@ -245,7 +257,8 @@ export const ToolRunner: React.FC = () => {
             />
           </div>
         )}
-      </div>
+        </div>
+      </ErrorBoundary>
     </div>
   );
 };

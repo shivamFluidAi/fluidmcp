@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 import ServerCard from "../components/ServerCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ServerListControls } from "../components/ServerListControls";
 import { Pagination } from "../components/Pagination";
 import { useServers } from "../hooks/useServers";
@@ -134,112 +135,132 @@ export default function Dashboard() {
       </header>
 
       {/* Main content */}
-      <section className="dashboard-section">
-        <h2>Currently configured servers</h2>
-
-        {servers.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📦</div>
-            <h3 className="empty-state-title">No servers configured</h3>
-            <p className="empty-state-description">
-              Add MCP servers to get started
-            </p>
+      <ErrorBoundary fallback={
+        <div className="dashboard-section">
+          <h2>Currently configured servers</h2>
+          <div className="result-error">
+            <h3>Error Loading Servers</h3>
+            <p>Failed to render server list. Please refresh the page.</p>
           </div>
-        ) : (
-          <>
-            <ServerListControls
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-              filterBy={filterBy}
-              onFilterChange={setFilterBy}
-              onClearFilters={clearFilters}
-            />
-
-            {totalFilteredCount === 0 ? (
-              <div className="empty-state">
-                <div className="empty-state-icon">🔍</div>
-                <h3 className="empty-state-title">No servers found</h3>
-                <p className="empty-state-description">
-                  No servers match your current filters
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="server-list">
-                  {paginatedServers.map((server) => (
-                    <ServerCard
-                      key={server.id}
-                      server={server}
-                      onStart={() => handleStartServer(server.id)}
-                      onViewDetails={() => navigate(`/servers/${server.id}`)}
-                      isStarting={actionState.serverId === server.id && actionState.type === 'starting'}
-                    />
-                  ))}
-                </div>
-
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalItems={totalFilteredCount}
-                  itemsPerPage={6}
-                  onPageChange={setCurrentPage}
-                  itemName="servers"
-                />
-              </>
-            )}
-          </>
-        )}
-      </section>
-
-      <section className="dashboard-section">
-        <h2>Currently active servers</h2>
-
-        <div className="active-server-container">
-          {activeServers.length === 0 ? (
-            <p className="empty-state">
-              No servers are currently running
-            </p>
-          ) : (
-            <div className="active-server-list">
-              {activeServers.map((server) => (
-                <div key={server.id} className="active-server-row">
-                  <div>
-                    <strong>{server.name}</strong>
-                    <span className={`status ${server.status?.state}`}>
-                      {server.status?.state}
-                    </span>
-                  </div>
-
-                  <div className="active-server-actions">
-                    <button
-                      className="stop-btn"
-                      onClick={() => handleStopServer(server.id)}
-                      disabled={actionState.serverId === server.id && actionState.type === 'stopping'}
-                    >
-                      {actionState.serverId === server.id && actionState.type === 'stopping' ? 'Stopping...' : 'Stop'}
-                    </button>
-                    <button
-                      className="restart-btn"
-                      onClick={() => handleRestartServer(server.id)}
-                      disabled={actionState.serverId === server.id && actionState.type === 'restarting'}
-                    >
-                      {actionState.serverId === server.id && actionState.type === 'restarting' ? 'Restarting...' : 'Restart'}
-                    </button>
-                    <button
-                      className="details-btn"
-                      onClick={() => navigate(`/servers/${server.id}`)}
-                    >
-                      Details
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-      </section>
+      }>
+        <section className="dashboard-section">
+          <h2>Currently configured servers</h2>
+
+          {servers.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">📦</div>
+              <h3 className="empty-state-title">No servers configured</h3>
+              <p className="empty-state-description">
+                Add MCP servers to get started
+              </p>
+            </div>
+          ) : (
+            <>
+              <ServerListControls
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                filterBy={filterBy}
+                onFilterChange={setFilterBy}
+                onClearFilters={clearFilters}
+              />
+
+              {totalFilteredCount === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">🔍</div>
+                  <h3 className="empty-state-title">No servers found</h3>
+                  <p className="empty-state-description">
+                    No servers match your current filters
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="server-list">
+                    {paginatedServers.map((server) => (
+                      <ServerCard
+                        key={server.id}
+                        server={server}
+                        onStart={() => handleStartServer(server.id)}
+                        onViewDetails={() => navigate(`/servers/${server.id}`)}
+                        isStarting={actionState.serverId === server.id && actionState.type === 'starting'}
+                      />
+                    ))}
+                  </div>
+
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalFilteredCount}
+                    itemsPerPage={6}
+                    onPageChange={setCurrentPage}
+                    itemName="servers"
+                  />
+                </>
+              )}
+            </>
+          )}
+        </section>
+      </ErrorBoundary>
+
+      <ErrorBoundary fallback={
+        <div className="dashboard-section">
+          <h2>Currently active servers</h2>
+          <div className="result-error">
+            <h3>Error Loading Active Servers</h3>
+            <p>Failed to render active server list. Please refresh the page.</p>
+          </div>
+        </div>
+      }>
+        <section className="dashboard-section">
+          <h2>Currently active servers</h2>
+
+          <div className="active-server-container">
+            {activeServers.length === 0 ? (
+              <p className="empty-state">
+                No servers are currently running
+              </p>
+            ) : (
+              <div className="active-server-list">
+                {activeServers.map((server) => (
+                  <div key={server.id} className="active-server-row">
+                    <div>
+                      <strong>{server.name}</strong>
+                      <span className={`status ${server.status?.state}`}>
+                        {server.status?.state}
+                      </span>
+                    </div>
+
+                    <div className="active-server-actions">
+                      <button
+                        className="stop-btn"
+                        onClick={() => handleStopServer(server.id)}
+                        disabled={actionState.serverId === server.id && actionState.type === 'stopping'}
+                      >
+                        {actionState.serverId === server.id && actionState.type === 'stopping' ? 'Stopping...' : 'Stop'}
+                      </button>
+                      <button
+                        className="restart-btn"
+                        onClick={() => handleRestartServer(server.id)}
+                        disabled={actionState.serverId === server.id && actionState.type === 'restarting'}
+                      >
+                        {actionState.serverId === server.id && actionState.type === 'restarting' ? 'Restarting...' : 'Restart'}
+                      </button>
+                      <button
+                        className="details-btn"
+                        onClick={() => navigate(`/servers/${server.id}`)}
+                      >
+                        Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </ErrorBoundary>
     </div>
   );
 }

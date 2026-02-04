@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import ServerCard from "../components/ServerCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
@@ -34,7 +34,7 @@ export default function Dashboard() {
     totalFilteredCount,
   } = useServerFiltering(servers, { itemsPerPage: 6 });
 
-  const handleStartServer = async (serverId: string) => {
+  const handleStartServer = useCallback(async (serverId: string) => {
     // Silent guard - prevent concurrent operations
     if (actionState.type !== null) return;
 
@@ -53,9 +53,9 @@ export default function Dashboard() {
     } finally {
       setActionState({ serverId: null, type: null });
     }
-  };
+  }, [actionState.type, servers, startServer]);
 
-  const handleStopServer = async (serverId: string) => {
+  const handleStopServer = useCallback(async (serverId: string) => {
     // Silent guard - prevent concurrent operations
     if (actionState.type !== null) return;
 
@@ -74,9 +74,9 @@ export default function Dashboard() {
     } finally {
       setActionState({ serverId: null, type: null });
     }
-  };
+  }, [actionState.type, servers, stopServer]);
 
-  const handleRestartServer = async (serverId: string) => {
+  const handleRestartServer = useCallback(async (serverId: string) => {
     // Silent guard - prevent concurrent operations
     if (actionState.type !== null) return;
 
@@ -95,7 +95,7 @@ export default function Dashboard() {
     } finally {
       setActionState({ serverId: null, type: null });
     }
-  };
+  }, [actionState.type, servers, restartServer]);
 
   if (loading) {
     return (

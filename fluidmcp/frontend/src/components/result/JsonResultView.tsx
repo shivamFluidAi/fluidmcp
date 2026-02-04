@@ -6,7 +6,7 @@ interface JsonNodeProps {
   expandAll?: boolean;
 }
 
-const JsonNode: React.FC<JsonNodeProps> = ({ data, name, expandAll = false }) => {
+const JsonNodeBase: React.FC<JsonNodeProps> = ({ data, name, expandAll = false }) => {
   const [isCollapsed, setIsCollapsed] = useState(!expandAll);
 
   // Sync with parent expand/collapse control
@@ -124,6 +124,9 @@ const JsonNode: React.FC<JsonNodeProps> = ({ data, name, expandAll = false }) =>
 
   return <div className="json-line">{String(data)}</div>;
 };
+
+// Memoize JsonNode to prevent unnecessary re-renders of the entire tree
+const JsonNode = React.memo(JsonNodeBase);
 
 interface JsonResultViewProps {
   data: unknown;
